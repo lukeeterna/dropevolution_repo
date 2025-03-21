@@ -3,8 +3,8 @@ uvicorn==0.22.0
 httpx==0.24.1
 pydantic==1.10.7
 selenium==4.8.3
-psycopg2-binary==2.9.6
+psycopg==3.2.6
 stripe==5.4.0
 firebase-admin==6.1.0
 python-dotenv==1.0.0
-
+PyJWT==2.8.0
