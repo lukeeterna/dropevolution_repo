@@ -1,0 +1,341 @@
+# Manuale d'uso DROP EVOLUTION
+
+## Indice
+1. [Introduzione](#introduzione)
+2. [Requisiti di sistema](#requisiti-di-sistema)
+3. [Installazione](#installazione)
+4. [Accesso e autenticazione](#accesso-e-autenticazione)
+5. [Dashboard](#dashboard)
+6. [Gestione prodotti](#gestione-prodotti)
+7. [Gestione ordini](#gestione-ordini)
+8. [Analytics](#analytics)
+9. [Impostazioni e profilo](#impostazioni-e-profilo)
+10. [Risoluzione problemi](#risoluzione-problemi)
+
+## Introduzione
+
+DROP EVOLUTION è una piattaforma completa per la gestione del business di dropshipping, che consente di monitorare i prezzi dei prodotti su Amazon, creare inserzioni su eBay, gestire ordini e analizzare le performance di vendita.
+
+Principali funzionalità:
+- **Monitoraggio prezzi**: Monitora automaticamente le variazioni di prezzo dei prodotti su Amazon
+- **Gestione prodotti**: Importa prodotti da Amazon e crea inserzioni su eBay
+- **Gestione ordini**: Visualizza, gestisci e tieni traccia di tutti gli ordini
+- **Analisi dati**: Visualizza statistiche e reportistica avanzata
+- **Integrazione marketplace**: Connessione con Amazon e eBay
+
+## Requisiti di sistema
+
+### Frontend
+- Browser web moderno (Chrome, Firefox, Safari, Edge)
+- JavaScript abilitato
+
+### Backend
+- Python 3.8 o superiore
+- PostgreSQL 12 o superiore
+- Node.js 14 o superiore (per lo sviluppo frontend)
+
+### Dipendenze Python
+- FastAPI
+- SQLAlchemy
+- Uvicorn
+- Alembic
+- Altre dipendenze elencate in requirements.txt
+
+### Dipendenze JavaScript
+- React
+- React Router
+- Axios
+- Recharts
+- Tailwind CSS
+- Lucide React
+
+## Installazione
+
+### Utilizzo degli script di avvio rapido
+
+Per avviare rapidamente DROP EVOLUTION, sono disponibili diversi script:
+
+1. **start-dropevolution.sh**: Avvia l'applicazione completa
+   ```bash
+   cd ~/Desktop/DropEvolutionProject
+   ./start-dropevolution.sh
+   ```
+
+2. **start-drop-evolution-full.sh**: Avvia il backend e frontend in finestre terminali separate
+   ```bash
+   cd ~/Desktop/DropEvolutionProject
+   ./start-drop-evolution-full.sh
+   ```
+
+3. **setup-alembic-script.sh**: Configura il database e le migrazioni
+   ```bash
+   cd ~/Desktop/DropEvolutionProject
+   ./setup-alembic-script.sh
+   ```
+
+### Installazione manuale
+
+#### Backend
+1. Clona il repository
+   ```bash
+   git clone https://github.com/yourusername/dropevolution.git
+   cd dropevolution
+   ```
+
+2. Crea un ambiente virtuale Python
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # su Windows: venv\Scripts\activate
+   ```
+
+3. Installa le dipendenze
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Crea un file .env nella directory principale con le configurazioni necessarie:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost/dropevolution
+   SECRET_KEY=your_secret_key
+   API_V1_STR=/api/v1
+   ```
+
+5. Esegui le migrazioni del database
+   ```bash
+   cd backend
+   alembic upgrade head
+   ```
+
+6. Avvia il server
+   ```bash
+   cd backend
+   uvicorn app.main:app --reload
+   ```
+
+#### Frontend
+1. Accedi alla directory frontend
+   ```bash
+   cd frontend
+   ```
+
+2. Installa le dipendenze
+   ```bash
+   npm install
+   ```
+
+3. Avvia il server di sviluppo
+   ```bash
+   npm run dev
+   ```
+
+4. Il frontend sarà disponibile all'indirizzo http://localhost:3000
+
+## Accesso e autenticazione
+
+### Registrazione
+
+1. Accedi alla pagina di registrazione tramite il pulsante "Crea un nuovo account" nella schermata di login
+2. Inserisci il tuo nome completo, email, password e conferma password
+3. Clicca su "Crea account"
+4. Dopo la registrazione, verrai reindirizzato alla pagina di login
+
+### Login
+
+1. Accedi alla pagina di login (http://localhost:3000/login)
+2. Inserisci la tua email e password
+3. Clicca su "Accedi"
+4. Al primo accesso, verrai accolto dalla dashboard principale
+
+### Recupero password
+
+1. Dalla pagina di login, clicca su "Password dimenticata?"
+2. Inserisci la tua email
+3. Clicca su "Invia istruzioni"
+4. Riceverai un'email con un link per reimpostare la password
+5. Segui il link e inserisci la nuova password
+
+## Dashboard
+
+La dashboard è la pagina principale dell'applicazione e fornisce una panoramica delle informazioni più importanti:
+
+### Componenti principali
+
+1. **Statistiche generali**: Visualizzazione dei dati principali come fatturato, profitto, ordini e prodotti attivi
+2. **Grafico profitti**: Andamento di fatturato e profitti nel tempo
+3. **Prodotti recenti**: Lista degli ultimi prodotti aggiunti
+4. **Ordini recenti**: Lista degli ultimi ordini ricevuti
+5. **Azioni rapide**: Pulsanti per azioni comuni come importare un prodotto o sincronizzare gli ordini
+
+### Navigazione
+
+- Il menu laterale consente di navigare tra le diverse sezioni dell'applicazione
+- Il menu utente in alto a destra permette di accedere al profilo, alle impostazioni e al logout
+- Le notifiche vengono visualizzate con un'icona a campanella nella barra superiore
+
+## Gestione prodotti
+
+### Lista prodotti
+
+La pagina Prodotti mostra tutti i prodotti importati nel sistema:
+
+1. **Ricerca e filtri**: Cerca prodotti per nome o ASIN e filtra per stato o monitoraggio
+2. **Tabella prodotti**: Visualizza i dettagli principali di ogni prodotto
+3. **Azioni rapide**: Possibilità di attivare/disattivare il monitoraggio, aggiornare i dati o visualizzare i dettagli
+
+### Importazione prodotti
+
+Per importare un nuovo prodotto:
+
+1. Clicca su "Importa Prodotto" nella pagina Prodotti
+2. Inserisci l'URL o il codice ASIN di un prodotto Amazon
+3. Clicca su "Importa Prodotto"
+4. Dopo l'importazione, verrai reindirizzato alla pagina di dettaglio del prodotto
+
+### Dettaglio prodotto
+
+La pagina di dettaglio prodotto mostra informazioni complete e opzioni di gestione:
+
+1. **Informazioni generali**: Titolo, prezzo attuale, prezzo originale, disponibilità, ecc.
+2. **Storico prezzi**: Grafico con l'andamento dei prezzi nel tempo
+3. **Inserzione eBay**: Possibilità di creare e gestire un'inserzione eBay per il prodotto
+4. **Specifiche tecniche**: Dettagli completi del prodotto
+
+### Monitoraggio prezzi
+
+Per attivare il monitoraggio dei prezzi di un prodotto:
+
+1. Nella pagina di dettaglio prodotto, clicca sul pulsante "Attiva Monitoraggio"
+2. Il sistema inizierà a controllare regolarmente il prezzo del prodotto
+3. Riceverai notifiche quando vengono rilevate variazioni di prezzo significative
+
+### Creazione inserzione eBay
+
+Per creare un'inserzione eBay per un prodotto:
+
+1. Nella pagina di dettaglio prodotto, vai alla scheda "Inserzione eBay"
+2. Clicca su "Crea Inserzione eBay"
+3. Personalizza i dettagli dell'inserzione se necessario
+4. Clicca su "Conferma" per pubblicare l'inserzione
+5. Dopo la creazione, verranno visualizzati i dettagli dell'inserzione e un link per visualizzarla su eBay
+
+## Gestione ordini
+
+### Lista ordini
+
+La pagina Ordini mostra tutti gli ordini ricevuti:
+
+1. **Ricerca e filtri**: Cerca ordini per ID o cliente e filtra per stato o date
+2. **Tabella ordini**: Visualizza i dettagli principali di ogni ordine
+3. **Sincronizzazione**: Pulsante per sincronizzare gli ordini dai marketplace
+
+### Dettaglio ordine
+
+La pagina di dettaglio ordine mostra informazioni complete e opzioni di gestione:
+
+1. **Stato ordine**: Visualizzazione grafica del flusso di elaborazione
+2. **Articoli ordinati**: Lista dei prodotti inclusi nell'ordine
+3. **Informazioni cliente**: Dati di contatto e indirizzo di spedizione
+4. **Dettagli pagamento**: Metodo di pagamento e stato
+5. **Azioni**: Possibilità di cambiare stato, stampare o creare una spedizione
+
+### Gestione spedizioni
+
+Per gestire la spedizione di un ordine:
+
+1. Nella pagina di dettaglio ordine, clicca su "Spedisci ora"
+2. Seleziona il corriere
+3. Inserisci il numero di tracciamento
+4. Aggiungi eventuali note
+5. Clicca su "Conferma spedizione"
+6. Lo stato dell'ordine verrà aggiornato automaticamente a "Spedito"
+
+### Sincronizzazione ordini
+
+Per sincronizzare gli ordini dai marketplace:
+
+1. Nella pagina Ordini, clicca su "Sincronizza Ordini"
+2. Il sistema recupererà automaticamente i nuovi ordini da eBay e altri marketplace collegati
+3. I nuovi ordini verranno aggiunti alla lista
+
+## Analytics
+
+La pagina Analytics fornisce reportistica avanzata e analisi dei dati:
+
+### Componenti principali
+
+1. **Selezione periodo**: Seleziona il periodo di tempo per l'analisi
+2. **Grafico profitti**: Andamento dettagliato di fatturato e profitti
+3. **Prodotti più venduti**: Lista dei prodotti con più vendite
+4. **Prodotti più profittevoli**: Lista dei prodotti con maggior profitto
+5. **Categorie più popolari**: Distribuzione delle vendite per categoria
+6. **Metriche chiave**: KPI principali come valore medio ordine e margine medio
+
+### Esportazione dati
+
+Per esportare i dati analitici:
+
+1. Nella pagina Analytics, seleziona il periodo desiderato
+2. Clicca su "Esporta CSV"
+3. Il file verrà scaricato automaticamente
+
+## Impostazioni e profilo
+
+### Profilo utente
+
+Per gestire il tuo profilo:
+
+1. Clicca sul tuo nome in alto a destra e seleziona "Profilo"
+2. Visualizza le tue informazioni personali
+3. Clicca su "Modifica profilo" per aggiornare i dati
+4. Inserisci le nuove informazioni e clicca su "Salva modifiche"
+
+### Impostazioni
+
+Per configurare l'applicazione:
+
+1. Clicca sul tuo nome in alto a destra e seleziona "Impostazioni"
+2. Naviga tra le diverse sezioni di configurazione:
+   - **Profilo**: Modifica le tue informazioni personali
+   - **Cambia Password**: Aggiorna la password del tuo account
+   - **Integrazioni Marketplace**: Configura le connessioni con Amazon e eBay
+   - **Notifiche**: Personalizza le impostazioni di notifica
+
+### Integrazioni marketplace
+
+Per configurare l'integrazione con i marketplace:
+
+1. Vai alla pagina Impostazioni
+2. Seleziona la sezione "Integrazioni Marketplace"
+3. Attiva l'integrazione desiderata (eBay/Amazon)
+4. Inserisci il token API o segui il processo di autorizzazione
+5. Clicca su "Salva modifiche"
+
+## Risoluzione problemi
+
+### Errori comuni
+
+#### Problemi di connessione al database
+1. Verifica che PostgreSQL sia in esecuzione
+2. Controlla le credenziali nel file .env
+3. Assicurati che il database esista
+
+#### Errori di autenticazione
+1. Verifica email e password
+2. Prova a reimpostare la password
+3. Controlla che non ci siano problemi con il token JWT
+
+#### Problemi di importazione prodotti
+1. Assicurati che l'URL o l'ASIN siano corretti
+2. Verifica che il prodotto sia disponibile su Amazon
+3. Controlla i log per errori specifici
+
+### Supporto
+
+Per problemi tecnici o domande, contatta il supporto:
+- Email: support@dropevolution.com
+- Telefono: +39 02 1234567
+- Portale di supporto: https://support.dropevolution.com
+
+---
+
+© 2025 DROP EVOLUTION - Tutti i diritti riservati
