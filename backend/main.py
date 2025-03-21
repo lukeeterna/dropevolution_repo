@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Depends
+from jwt_middleware import JWTMiddleware
 
 app = FastAPI()
+app.add_middleware(JWTMiddleware)
 
 @app.get("/health")
 async def health_check():
