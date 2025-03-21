@@ -1,0 +1,19 @@
+# Dockerfile per il backend (FastAPI)
+
+FROM python:3.11-slim
+
+# Imposta la cartella di lavoro
+WORKDIR /app
+
+# Copia i file requirements e installa le dipendenze
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copia tutto il codice del progetto nel container
+COPY . .
+
+# Espone la porta 8000
+EXPOSE 8000
+
+# Comando per avviare il server Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
