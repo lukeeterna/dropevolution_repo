@@ -1,0 +1,54 @@
+```
+dropevolution/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                    # Entry point dell'applicazione
+│   ├── config.py                  # Configurazioni centralizzate
+│   ├── dependencies.py            # Dipendenze condivise (es. auth)
+│   ├── models/                    # Modelli del database
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── user.py
+│   │   └── product.py
+│   ├── schemas/                   # Modelli Pydantic
+│   │   ├── __init__.py
+│   │   ├── user.py
+│   │   └── product.py
+│   ├── api/                       # API routes
+│   │   ├── __init__.py
+│   │   ├── deps.py                # Dipendenze specifiche delle API
+│   │   ├── v1/                    # Versioning delle API
+│   │   │   ├── __init__.py
+│   │   │   ├── endpoints/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── users.py
+│   │   │   │   └── products.py
+│   │   │   └── router.py
+│   ├── core/                      # Logica core
+│   │   ├── __init__.py
+│   │   ├── auth.py                # JWT handling
+│   │   ├── security.py            # Password hashing
+│   │   └── errors.py              # Error handling
+│   └── services/                  # Business logic
+│       ├── __init__.py
+│       ├── user_service.py
+│       └── product_service.py
+├── tests/                         # Unit & integration tests
+│   ├── __init__.py
+│   ├── conftest.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── test_users.py
+│   │   └── test_products.py
+│   └── services/
+│       ├── __init__.py
+│       ├── test_user_service.py
+│       └── test_product_service.py
+├── alembic/                       # Migrazioni del database
+├── .env.example                   # Template per variabili d'ambiente
+├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml                 # Configurazione per tool moderni
+└── README.md
+```
