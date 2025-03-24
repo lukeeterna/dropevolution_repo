@@ -7,4 +7,4 @@ services:
     autoDeploy: true
     envVars:
       - key: SECRET_KEY
-        value: inserisci_la_tua_secret_key_qui
+        value: "qui_incolla_la_tua_secret_key"
