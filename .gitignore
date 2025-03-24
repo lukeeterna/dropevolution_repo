@@ -1,31 +1,10 @@
-# Python
 __pycache__/
-*.py[cod]
-*.egg
-*.egg-info/
-dist/
-build/
-.eggs/
+*.pyc
 .env
-.venv
+.venv/
 venv/
-ENV/
-env/
-*.sqlite3
-
-# macOS
 .DS_Store
-
-# VSCode
-.vscode/
-
-# Logs
 *.log
-
-# Secret files
-*.env
-
-# Frontend build
-node_modules/
-.next/
-out/
+logs/
+*.lock
+*.html

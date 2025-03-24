@@ -1,0 +1,2084 @@
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/jwt_middleware.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# Middleware JWT per il backend (FastAPI)
+
+from fastapi import Request, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+import jwt
+
+SECRET_KEY = "supersegreto"  # Cambialo e gestiscilo tramite variabile d'ambiente in produzione
+
+class JWTMiddleware(HTTPBearer):
+    async def __call__(self, request: Request):
+        credentials: HTTPAuthorizationCredentials = await super().__call__(request)
+        if credentials:
+            if not credentials.scheme == "Bearer":
+                raise HTTPException(status_code=403, detail="Invalid authentication scheme.")
+            if not self.verify_jwt(credentials.credentials):
+                raise HTTPException(status_code=403, detail="Invalid or expired token.")
+        else:
+            raise HTTPException(status_code=403, detail="Invalid authorization code.")
+
+    def verify_jwt(self, jwtoken: str) -> bool:
+        try:
+            payload = jwt.decode(jwtoken, SECRET_KEY, algorithms=["HS256"])
+            return True
+        except jwt.ExpiredSignatureError:
+            return False
+        except jwt.InvalidTokenError:
+            return False
+
+# Esempio di utilizzo in main.py:
+# from fastapi import Depends
+# from jwt_middleware import JWTMiddleware
+# app = FastAPI()
+# app.add_middleware(JWTMiddleware)
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/main.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
+import jwt
+from jwt import PyJWTError
+from datetime import datetime, timedelta
+
+app = FastAPI()
+
+# Secret key for JWT
+SECRET_KEY = "your_secret_key"
+ALGORITHM = "HS256"
+
+# Middleware for JWT authentication
+security = HTTPBearer()
+
+def verify_jwt(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload  # Return the decoded payload if valid
+    except PyJWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+# Root endpoint
+@app.get("/")
+async def root():
+    return {"message": "Drop Evolution API is running"}
+
+# Models
+class Product(BaseModel):
+    id: int
+    name: str
+    price: float
+
+class Order(BaseModel):
+    id: int
+    product_id: int
+    quantity: int
+
+# In-memory storage for demonstration
+products = [
+    {"id": 1, "name": "Product A", "price": 10.99},
+    {"id": 2, "name": "Product B", "price": 15.49},
+]
+
+orders = []
+
+# Products endpoints
+@app.get("/products", dependencies=[Depends(verify_jwt)])
+async def get_products():
+    return {"products": products}
+
+@app.post("/products", dependencies=[Depends(verify_jwt)])
+async def create_product(product: Product):
+    # Check for duplicate product ID
+    if any(p["id"] == product.id for p in products):
+        raise HTTPException(status_code=400, detail="Product ID already exists")
+    products.append(product.dict())
+    return {"message": "Product created", "product": product}
+
+# Orders endpoints
+@app.get("/orders", dependencies=[Depends(verify_jwt)])
+async def get_orders():
+    return {"orders": orders}
+
+@app.post("/orders", dependencies=[Depends(verify_jwt)])
+async def create_order(order: Order):
+    # Validate product existence
+    if not any(p["id"] == order.product_id for p in products):
+        raise HTTPException(status_code=400, detail="Product not found")
+    # Check for duplicate order ID
+    if any(o["id"] == order.id for o in orders):
+        raise HTTPException(status_code=400, detail="Order ID already exists")
+    orders.append(order.dict())
+    return {"message": "Order created", "order": order}
+
+# Endpoint to generate JWT token (for testing purposes)
+@app.post("/auth/token")
+async def generate_token(username: str):
+    expiration = datetime.utcnow() + timedelta(hours=1)
+    payload = {"sub": username, "exp": expiration}
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return {"access_token": token, "token_type": "bearer"}
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/migrations/env.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/core/auth_token_manager.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/core/config.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/core/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/utils/selenium_manager.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/utils/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/models/user.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/models/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/schemas/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/db/session.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/db/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/api/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/api/api_v1/api.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/services/__init__.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/services/ebay_service.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/backend/app/services/amazon_service.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/github/scripts/generate_copilot_review_report.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+import os
+
+# Roadmap integrata secondo le indicazioni di Claude:
+# 1. Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping.
+# 2. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati.
+# 3. Punti critici da segnalare: sicurezza JWT (revoca token, claims mancanti), gestione segreti, endpoint mancanti, logging avanzato, testing integrato.
+# 4. Suggerisci se applicare Service/Repository Pattern, dependency injection, alerting con Prometheus e Grafana, scaling Redis e fallback resilienza.
+
+
+def generate_copilot_review_prompt(repo_path, output_file):
+    prompt_header = ("Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. "
+                     "Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, "
+                     "ottimizzazione performance, controlli di sicurezza e test consigliati. "
+                     "Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. "
+                     "Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.")
+
+    with open(output_file, "w", encoding="utf-8") as out_file:
+        for root, _, files in os.walk(repo_path):
+            for file in files:
+                if file.endswith(".py"):
+                    file_path = os.path.join(root, file)
+                    with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                        content = f.read()
+                    out_file.write(f"{'='*80}\n")
+                    out_file.write(f"FILE: {file_path}\n")
+                    out_file.write(f"{'='*80}\n")
+                    out_file.write(prompt_header)
+                    out_file.write("\nCodice sorgente:\n")
+                    out_file.write(content)
+                    out_file.write("\n\nRisultato dell'analisi: (scrivi qui sotto)\n\n")
+
+    print(f"Report generato in {output_file}")
+
+# Imposta i percorsi
+repo_directory = "/Users/macbook/Desktop/dropevolution_repo"
+report_output = "/Users/macbook/Desktop/dropevolution_repo/github/scripts/copilot_code_review_report.txt"
+
+generate_copilot_review_prompt(repo_directory, report_output)
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/github/scripts/review_script.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+name: GPT-4 Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install openai
+
+      - name: Run code review script
+        run: python scripts/review_script.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+# Repository URL
+# REPO_URL = "https://github.com/lukeeterna/dropevolutionproject"
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/error-handling.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# app/core/errors.py
+from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+from fastapi import HTTPException, status
+
+class ErrorCode(str, Enum):
+    """Enumerazione dei codici di errore dell'applicazione"""
+    # Errori di autenticazione
+    AUTHENTICATION_REQUIRED = "auth_required"
+    INVALID_CREDENTIALS = "invalid_credentials"
+    SESSION_EXPIRED = "session_expired"
+    TOKEN_EXPIRED = "token_expired"
+    TOKEN_INVALID = "token_invalid"
+    
+    # Errori di autorizzazione
+    PERMISSION_DENIED = "permission_denied"
+    INSUFFICIENT_RIGHTS = "insufficient_rights"
+    
+    # Errori di validazione
+    VALIDATION_ERROR = "validation_error"
+    INVALID_INPUT = "invalid_input"
+    ENTITY_NOT_FOUND = "not_found"
+    ENTITY_ALREADY_EXISTS = "already_exists"
+    
+    # Errori di business logic
+    BUSINESS_LOGIC_ERROR = "business_error"
+    RESOURCE_EXHAUSTED = "resource_exhausted"
+    OPERATION_FORBIDDEN = "operation_forbidden"
+    RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    
+    # Errori di sistema
+    INTERNAL_ERROR = "internal_error"
+    SERVICE_UNAVAILABLE = "service_unavailable"
+    DATABASE_ERROR = "database_error"
+    EXTERNAL_SERVICE_ERROR = "external_service_error"
+
+
+class APIException(HTTPException):
+    """
+    Eccezione personalizzata per gli errori API con formattazione standardizzata.
+    Estende HTTPException di FastAPI per mantenere la compatibilità.
+    """
+    def __init__(
+        self,
+        status_code: int,
+        error_code: ErrorCode,
+        detail: str,
+        details: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ):
+        """
+        Inizializza una nuova APIException.
+        
+        Args:
+            status_code: Codice HTTP di stato.
+            error_code: Codice di errore standardizzato dall'enumerazione ErrorCode.
+            detail: Messaggio di errore leggibile dall'utente.
+            details: Informazioni aggiuntive sull'errore, utili per il debug o per fornire più contesto.
+            headers: Intestazioni HTTP opzionali (es. per errori di autenticazione).
+        """
+        super().__init__(status_code=status_code, detail=detail, headers=headers)
+        self.error_code = error_code
+        self.details = details
+
+
+# Errori di autenticazione
+class AuthenticationError(APIException):
+    """Base class per errori di autenticazione."""
+    def __init__(
+        self,
+        error_code: ErrorCode = ErrorCode.AUTHENTICATION_REQUIRED,
+        detail: str = "Autenticazione richiesta",
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            error_code=error_code,
+            detail=detail,
+            details=details,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class InvalidCredentialsError(AuthenticationError):
+    """Errore per credenziali non valide."""
+    def __init__(self, detail: str = "Credenziali non valide", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            error_code=ErrorCode.INVALID_CREDENTIALS,
+            detail=detail,
+            details=details,
+        )
+
+
+class TokenExpiredError(AuthenticationError):
+    """Errore per token scaduto."""
+    def __init__(self, detail: str = "Il token di autenticazione è scaduto", details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            error_code=ErrorCode.TOKEN_EXPIRED,
+            detail=detail,
+            details=details,
+        )
+
+
+# Errori di autorizzazione
+class PermissionDeniedError(APIException):
+    """Errore per mancanza di permessi."""
+    def __init__(
+        self,
+        detail: str = "Non hai i permessi necessari per eseguire questa operazione",
+        error_code: ErrorCode = ErrorCode.PERMISSION_DENIED,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            error_code=error_code,
+            detail=detail,
+            details=details,
+        )
+
+
+# Errori di validazione
+class ValidationError(APIException):
+    """Errore per dati di input non validi."""
+    def __init__(
+        self,
+        detail: str = "Dati di input non validi",
+        details: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
+        error_code: ErrorCode = ErrorCode.VALIDATION_ERROR,
+    ):
+        super().__init__(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            error_code=error_code,
+            detail=detail,
+            details=details,
+        )
+
+
+class EntityNotFoundError(APIException):
+    """Errore per entità non trovata."""
+    def __init__(
+        self,
+        entity_type: str,
+        entity_id: Optional[Union[str, int]] = None,
+        detail: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        if detail is None:
+            if entity_id is not None:
+                detail = f"{entity_type} con ID {entity_id} non trovato"
+            else:
+                detail = f"{entity_type} non trovato"
+                
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            error_code=ErrorCode.ENTITY_NOT_FOUND,
+            detail=detail,
+            details=details or {"entity_type": entity_type, "entity_id": entity_id},
+        )
+
+
+class EntityAlreadyExistsError(APIException):
+    """Errore per entità già esistente."""
+    def __init__(
+        self,
+        entity_type: str,
+        field: str,
+        value: Any,
+        detail: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        if detail is None:
+            detail = f"{entity_type} con {field} '{value}' esiste già"
+            
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            error_code=ErrorCode.ENTITY_ALREADY_EXISTS,
+            detail=detail,
+            details=details or {"entity_type": entity_type, "field": field, "value": value},
+        )
+
+
+# Errori di business logic
+class BusinessLogicError(APIException):
+    """Base class per errori di business logic."""
+    def __init__(
+        self,
+        detail: str,
+        error_code: ErrorCode = ErrorCode.BUSINESS_LOGIC_ERROR,
+        details: Optional[Dict[str, Any]] = None,
+        status_code: int = status.HTTP_400_BAD_REQUEST,
+    ):
+        super().__init__(
+            status_code=status_code,
+            error_code=error_code,
+            detail=detail,
+            details=details,
+        )
+
+
+# Errori di sistema
+class InternalServerError(APIException):
+    """Errore interno del server."""
+    def __init__(
+        self,
+        detail: str = "Si è verificato un errore interno. Riprova più tardi.",
+        error_code: ErrorCode = ErrorCode.INTERNAL_ERROR,
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            error_code=error_code,
+            detail=detail,
+            details=details,
+        )
+
+
+class ServiceUnavailableError(APIException):
+    """Errore per servizio non disponibile."""
+    def __init__(
+        self,
+        detail: str = "Il servizio non è attualmente disponibile. Riprova più tardi.",
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            error_code=ErrorCode.SERVICE_UNAVAILABLE,
+            detail=detail,
+            details=details,
+        )
+
+
+class DatabaseError(InternalServerError):
+    """Errore del database."""
+    def __init__(
+        self,
+        detail: str = "Si è verificato un errore con il database. Riprova più tardi.",
+        details: Optional[Dict[str, Any]] = None,
+    ):
+        super().__init__(
+            detail=detail,
+            error_code=ErrorCode.DATABASE_ERROR,
+            details=details,
+        )
+
+
+class ExternalServiceError(APIException):
+    """Errore di servizio esterno."""
+    def __init__(
+        self,
+        service_name: str,
+        detail: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        status_code: int = status.HTTP_502_BAD_GATEWAY,
+    ):
+        if detail is None:
+            detail = f"Errore durante la comunicazione con il servizio esterno '{service_name}'"
+            
+        super().__init__(
+            status_code=status_code,
+            error_code=ErrorCode.EXTERNAL_SERVICE_ERROR,
+            detail=detail,
+            details=details or {"service_name": service_name},
+        )
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/testing-strategies.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# tests/conftest.py
+import asyncio
+import os
+import pytest
+from typing import Dict, Generator, Any
+from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+from app.main import app
+from app.db.session import get_db
+from app.db.base import Base
+from app.core.config import settings
+from app.core.auth import create_token
+from app.schemas.user import UserCreate
+from app.services.user_service import create_user
+
+# Utilizza un database SQLite in memoria per i test
+TEST_SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+engine = create_async_engine(
+    TEST_SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+TestingSessionLocal = sessionmaker(
+    autocommit=False, autoflush=False, bind=engine, class_=AsyncSession
+)
+
+# Test user data
+test_user = {
+    "email": "test@example.com",
+    "password": "Test@123",
+    "first_name": "Test",
+    "last_name": "User",
+}
+
+test_admin = {
+    "email": "admin@example.com",
+    "password": "Admin@123",
+    "first_name": "Admin",
+    "last_name": "User",
+    "is_admin": True,
+}
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
+
+@pytest.fixture(autouse=True)
+async def db():
+    """
+    Crea/elimina tutte le tabelle prima/dopo ogni test.
+    Questo garantisce un database pulito per ogni test.
+    """
+    # Crea tutte le tabelle
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Esegue il test
+    yield
+    
+    # Elimina tutte le tabelle
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture
+async def db_session():
+    """
+    Fixture che fornisce una sessione di database asincrona per i test.
+    Garantisce il rollback delle transazioni dopo ogni test.
+    """
+    async with TestingSessionLocal() as session:
+        yield session
+        await session.rollback()
+
+@pytest.fixture
+def client(db_session):
+    """
+    Fixture che fornisce un client di test per l'API FastAPI.
+    Sostituisce la dependency di db con la sessione di test.
+    """
+    # Override della dependency di db
+    async def override_get_db():
+        yield db_session
+    
+    app.dependency_overrides[get_db] = override_get_db
+    
+    # Crea il client di test
+    with TestClient(app) as test_client:
+        yield test_client
+    
+    # Rimuove l'override dopo il test
+    app.dependency_overrides.clear()
+
+@pytest.fixture
+async def test_user_db(db_session):
+    """
+    Fixture che crea un utente di test nel database.
+    """
+    user_in = UserCreate(**test_user)
+    user = await create_user(db_session, user_in)
+    return user
+
+@pytest.fixture
+async def test_admin_db(db_session):
+    """
+    Fixture che crea un utente admin di test nel database.
+    """
+    user_in = UserCreate(**test_admin)
+    user = await create_user(db_session, user_in, is_admin=True)
+    return user
+
+@pytest.fixture
+def user_token(test_user_db):
+    """
+    Fixture che genera un token JWT per un utente normale.
+    """
+    return create_token(test_user_db.id)
+
+@pytest.fixture
+def admin_token(test_admin_db):
+    """
+    Fixture che genera un token JWT per un utente admin.
+    """
+    return create_token(test_admin_db.id)
+
+@pytest.fixture
+def user_headers(user_token):
+    """
+    Fixture che fornisce gli header di autenticazione per un utente normale.
+    """
+    return {"Authorization": f"Bearer {user_token}"}
+
+@pytest.fixture
+def admin_headers(admin_token):
+    """
+    Fixture che fornisce gli header di autenticazione per un utente admin.
+    """
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
+# tests/api/test_auth.py
+import pytest
+from fastapi import status
+
+class TestAuth:
+    """
+    Test suite per le API di autenticazione.
+    """
+    
+    def test_login(self, client, test_user_db):
+        """Test per il login con credenziali valide."""
+        response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": test_user["email"],
+                "password": test_user["password"],
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "bearer"
+    
+    def test_login_invalid_credentials(self, client):
+        """Test per il login con credenziali non valide."""
+        response = client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": "wrong@example.com",
+                "password": "WrongPass123!",
+            },
+        )
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+    
+    def test_refresh_token(self, client, user_token):
+        """Test per il refresh del token."""
+        # Implementazione da completare
+        pass
+    
+    def test_me(self, client, user_headers, test_user_db):
+        """Test per ottenere info sull'utente corrente."""
+        response = client.get("/api/v1/users/me", headers=user_headers)
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["email"] == test_user["email"]
+        assert data["first_name"] == test_user["first_name"]
+        assert data["last_name"] == test_user["last_name"]
+
+
+# tests/api/test_products.py
+import pytest
+from fastapi import status
+
+class TestProducts:
+    """
+    Test suite per le API dei prodotti.
+    """
+    
+    def test_create_product(self, client, admin_headers):
+        """Test per la creazione di un prodotto (solo admin)."""
+        response = client.post(
+            "/api/v1/products",
+            headers=admin_headers,
+            json={
+                "name": "Test Product",
+                "description": "A test product",
+                "price": 29.99,
+                "stock": 10
+            },
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        data = response.json()
+        assert data["name"] == "Test Product"
+        assert data["price"] == 29.99
+        assert data["stock"] == 10
+    
+    def test_create_product_unauthorized(self, client, user_headers):
+        """Test per la creazione di un prodotto senza permessi admin."""
+        response = client.post(
+            "/api/v1/products",
+            headers=user_headers,
+            json={
+                "name": "Test Product",
+                "description": "A test product",
+                "price": 29.99,
+                "stock": 10
+            },
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+    
+    def test_get_products(self, client):
+        """Test per ottenere la lista dei prodotti (pubblico)."""
+        response = client.get("/api/v1/products")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert "items" in data
+        assert "total" in data
+    
+    def test_get_product(self, client, admin_headers):
+        """Test per ottenere un singolo prodotto."""
+        # Prima crea un prodotto
+        create_response = client.post(
+            "/api/v1/products",
+            headers=admin_headers,
+            json={
+                "name": "Test Product",
+                "description": "A test product",
+                "price": 29.99,
+                "stock": 10
+            },
+        )
+        product_id = create_response.json()["id"]
+        
+        # Poi ottiene il prodotto
+        response = client.get(f"/api/v1/products/{product_id}")
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["id"] == product_id
+        assert data["name"] == "Test Product"
+    
+    def test_update_product(self, client, admin_headers):
+        """Test per aggiornare un prodotto."""
+        # Prima crea un prodotto
+        create_response = client.post(
+            "/api/v1/products",
+            headers=admin_headers,
+            json={
+                "name": "Test Product",
+                "description": "A test product",
+                "price": 29.99,
+                "stock": 10
+            },
+        )
+        product_id = create_response.json()["id"]
+        
+        # Poi aggiorna il prodotto
+        response = client.put(
+            f"/api/v1/products/{product_id}",
+            headers=admin_headers,
+            json={
+                "name": "Updated Product",
+                "price": 39.99
+            },
+        )
+        assert response.status_code == status.HTTP_200_OK
+        data = response.json()
+        assert data["name"] == "Updated Product"
+        assert data["price"] == 39.99
+        assert data["stock"] == 10  # Non modificato
+    
+    def test_delete_product(self, client, admin_headers):
+        """Test per eliminare un prodotto."""
+        # Prima crea un prodotto
+        create_response = client.post(
+            "/api/v1/products",
+            headers=admin_headers,
+            json={
+                "name": "Test Product",
+                "description": "A test product",
+                "price": 29.99,
+                "stock": 10
+            },
+        )
+        product_id = create_response.json()["id"]
+        
+        # Poi elimina il prodotto
+        response = client.delete(
+            f"/api/v1/products/{product_id}",
+            headers=admin_headers,
+        )
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        
+        # Verifica che il prodotto sia stato eliminato
+        get_response = client.get(f"/api/v1/products/{product_id}")
+        assert get_response.status_code == status.HTTP_404_NOT_FOUND
+
+
+# tests/services/test_user_service.py
+import pytest
+from app.schemas.user import UserCreate, UserUpdate
+from app.services.user_service import (
+    create_user,
+    get_user_by_email,
+    update_user,
+    authenticate_user,
+)
+from app.core.errors import EntityAlreadyExistsError, InvalidCredentialsError
+
+class TestUserService:
+    """
+    Test suite per i servizi utente.
+    """
+    
+    @pytest.mark.asyncio
+    async def test_create_user(self, db_session):
+        """Test per la creazione di un utente."""
+        user_in = UserCreate(
+            email="new@example.com",
+            password="Password123!",
+            first_name="New",
+            last_name="User"
+        )
+        user = await create_user(db_session, user_in)
+        
+        assert user.email == user_in.email
+        assert user.first_name == user_in.first_name
+        assert user.last_name == user_in.last_name
+        assert user.is_active is True
+        assert user.is_admin is False
+    
+    @pytest.mark.asyncio
+    async def test_create_user_duplicate_email(self, db_session, test_user_db):
+        """Test per la creazione di un utente con email duplicata."""
+        user_in = UserCreate(
+            email=test_user["email"],  # Email già in uso
+            password="Password123!",
+            first_name="New",
+            last_name="User"
+        )
+        
+        with pytest.raises(EntityAlreadyExistsError):
+            await create_user(db_session, user_in)
+    
+    @pytest.mark.asyncio
+    async def test_get_user_by_email(self, db_session, test_user_db):
+        """Test per ottenere un utente tramite email."""
+        user = await get_user_by_email(db_session, test_user["email"])
+        assert user is not None
+        assert user.email == test_user["email"]
+    
+    @pytest.mark.asyncio
+    async def test_authenticate_user(self, db_session, test_user_db):
+        """Test per l'autenticazione di un utente."""
+        user = await authenticate_user(
+            db_session, 
+            test_user["email"], 
+            test_user["password"]
+        )
+        assert user is not None
+        assert user.email == test_user["email"]
+    
+    @pytest.mark.asyncio
+    async def test_authenticate_user_wrong_password(self, db_session, test_user_db):
+        """Test per l'autenticazione con password errata."""
+        with pytest.raises(InvalidCredentialsError):
+            await authenticate_user(
+                db_session, 
+                test_user["email"], 
+                "WrongPassword123!"
+            )
+    
+    @pytest.mark.asyncio
+    async def test_update_user(self, db_session, test_user_db):
+        """Test per l'aggiornamento di un utente."""
+        user_update = UserUpdate(
+            first_name="Updated",
+            last_name="Name"
+        )
+        updated_user = await update_user(db_session, test_user_db.id, user_update)
+        
+        assert updated_user.first_name == "Updated"
+        assert updated_user.last_name == "Name"
+        assert updated_user.email == test_user["email"]  # Non modificato
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/pydantic-schemas.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# app/schemas/base.py
+from datetime import datetime
+from typing import Any, Dict, Generic, List, Optional, Type, TypeVar, Union
+from pydantic import BaseModel, Field, validator, root_validator
+from pydantic.generics import GenericModel
+import re
+
+# Generic type per i modelli di dati
+T = TypeVar('T')
+
+class BaseSchema(BaseModel):
+    """Schema di base per tutti i modelli Pydantic."""
+    
+    class Config:
+        """Configurazione per lo schema di base."""
+        populate_by_name = True  # Supporta popolamento sia da alias che da nome campo
+        use_enum_values = True   # Usa i valori enum invece delle istanze enum
+        json_encoders = {
+            datetime: lambda dt: dt.isoformat(),
+        }
+
+
+class TimeStampMixin(BaseSchema):
+    """Mixin per campi timestamp comuni."""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class ResponseSchema(GenericModel, Generic[T]):
+    """Schema generico per le risposte API."""
+    success: bool = True
+    data: Optional[T] = None
+    message: Optional[str] = None
+    
+    class Config:
+        """Configurazione per lo schema di risposta."""
+        json_schema_extra = {
+            "example": {
+                "success": True,
+                "data": {},
+                "message": "Operazione completata con successo"
+            }
+        }
+
+
+class PaginatedResponseSchema(GenericModel, Generic[T]):
+    """Schema generico per le risposte API paginate."""
+    items: List[T]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+    has_next: bool
+    has_prev: bool
+    
+    class Config:
+        """Configurazione per lo schema di risposta paginata."""
+        json_schema_extra = {
+            "example": {
+                "items": [],
+                "total": 100,
+                "page": 1,
+                "per_page": 10,
+                "pages": 10,
+                "has_next": True,
+                "has_prev": False
+            }
+        }
+
+
+# app/schemas/user.py
+from typing import Optional
+import re
+from pydantic import EmailStr, Field, validator
+
+from app.schemas.base import BaseSchema, TimeStampMixin
+
+# Regex per validazione password
+PASSWORD_PATTERN = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+
+class UserBase(BaseSchema):
+    """Schema base per gli utenti."""
+    email: EmailStr
+    first_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    
+    @validator('email')
+    def email_must_be_valid(cls, v):
+        """Valida l'email con regole aggiuntive."""
+        if not v:
+            raise ValueError("L'email è obbligatoria")
+        
+        # Verifica che il dominio non sia temporaneo/usa e getta
+        disposable_domains = ["mailinator.com", "yopmail.com", "tempmail.com"]
+        domain = v.split('@')[-1].lower()
+        if domain in disposable_domains:
+            raise ValueError("Gli indirizzi email temporanei non sono accettati")
+        
+        return v
+
+
+class UserCreate(UserBase):
+    """Schema per la creazione di un utente."""
+    password: str = Field(..., min_length=8, max_length=100)
+    
+    @validator('password')
+    def password_must_be_strong(cls, v):
+        """Valida che la password soddisfi i requisiti di sicurezza."""
+        if not PASSWORD_PATTERN.match(v):
+            raise ValueError(
+                "La password deve contenere almeno 8 caratteri, "
+                "una lettera maiuscola, una lettera minuscola, "
+                "un numero e un carattere speciale (@$!%*?&)"
+            )
+        return v
+
+
+class UserUpdate(BaseSchema):
+    """Schema per l'aggiornamento di un utente."""
+    first_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50)
+    is_active: Optional[bool] = None
+
+
+class UserInDB(UserBase, TimeStampMixin):
+    """Schema per un utente nel database."""
+    id: int
+    is_active: bool = True
+    is_admin: bool = False
+    
+    class Config:
+        """Configurazione per lo schema utente nel DB."""
+        orm_mode = True
+
+
+class User(UserInDB):
+    """Schema per la risposta API dell'utente."""
+    pass
+
+
+class UserWithToken(User):
+    """Schema per la risposta API con utente e token."""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+# app/schemas/product.py
+from typing import List, Optional
+from decimal import Decimal
+from datetime import datetime
+from pydantic import Field, validator
+
+from app.schemas.base import BaseSchema, TimeStampMixin
+
+class ProductBase(BaseSchema):
+    """Schema base per i prodotti."""
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    price: Decimal = Field(..., ge=0, decimal_places=2)
+    stock: int = Field(..., ge=0)
+    category_id: Optional[int] = None
+    
+    @validator('price')
+    def price_must_be_positive(cls, v):
+        """Valida che il prezzo sia positivo e con massimo 2 decimali."""
+        if v < 0:
+            raise ValueError("Il prezzo non può essere negativo")
+        
+        # Assicura massimo 2 decimali
+        if v.as_tuple().exponent < -2:
+            raise ValueError("Il prezzo può avere al massimo 2 decimali")
+        
+        return v
+
+
+class ProductCreate(ProductBase):
+    """Schema per la creazione di un prodotto."""
+    pass
+
+
+class ProductUpdate(BaseSchema):
+    """Schema per l'aggiornamento di un prodotto."""
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=1000)
+    price: Optional[Decimal] = Field(None, ge=0, decimal_places=2)
+    stock: Optional[int] = Field(None, ge=0)
+    category_id: Optional[int] = None
+
+
+class ProductInDB(ProductBase, TimeStampMixin):
+    """Schema per un prodotto nel database."""
+    id: int
+    
+    class Config:
+        """Configurazione per lo schema prodotto nel DB."""
+        orm_mode = True
+
+
+class Product(ProductInDB):
+    """Schema per la risposta API del prodotto."""
+    pass
+
+
+# app/schemas/order.py
+from typing import List, Optional
+from decimal import Decimal
+from datetime import datetime
+from enum import Enum
+from pydantic import Field, validator, root_validator
+
+from app.schemas.base import BaseSchema, TimeStampMixin
+from app.schemas.user import User
+from app.schemas.product import Product
+
+class OrderStatus(str, Enum):
+    """Enumerazione per lo stato dell'ordine."""
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+
+
+class OrderItemBase(BaseSchema):
+    """Schema base per gli item dell'ordine."""
+    product_id: int
+    quantity: int = Field(..., gt=0)
+    unit_price: Decimal = Field(..., ge=0, decimal_places=2)
+    
+    @validator('unit_price')
+    def validate_unit_price(cls, v):
+        """Valida il prezzo unitario."""
+        if v < 0:
+            raise ValueError("Il prezzo unitario non può essere negativo")
+        return v
+    
+    @validator('quantity')
+    def validate_quantity(cls, v):
+        """Valida la quantità."""
+        if v <= 0:
+            raise ValueError("La quantità deve essere maggiore di zero")
+        return v
+
+
+class OrderItemCreate(OrderItemBase):
+    """Schema per la creazione di un item dell'ordine."""
+    pass
+
+
+class OrderItemInDB(OrderItemBase, TimeStampMixin):
+    """Schema per un item dell'ordine nel database."""
+    id: int
+    order_id: int
+    subtotal: Decimal
+    
+    @root_validator
+    def calculate_subtotal(cls, values):
+        """Calcola il subtotale per l'item."""
+        quantity = values.get('quantity', 0)
+        unit_price = values.get('unit_price', 0)
+        values['subtotal'] = quantity * unit_price
+        return values
+    
+    class Config:
+        """Configurazione per lo schema item dell'ordine nel DB."""
+        orm_mode = True
+
+
+class OrderItem(OrderItemInDB):
+    """Schema per la risposta API dell'item dell'ordine."""
+    product: Optional[Product] = None
+
+
+class OrderBase(BaseSchema):
+    """Schema base per gli ordini."""
+    user_id: int
+    status: OrderStatus = OrderStatus.PENDING
+    shipping_address: str = Field(..., min_length=5, max_length=255)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class OrderCreate(BaseSchema):
+    """Schema per la creazione di un ordine."""
+    items: List[OrderItemCreate]
+    shipping_address: str = Field(..., min_length=5, max_length=255)
+    notes: Optional[str] = Field(None, max_length=1000)
+    
+    @validator('items')
+    def validate_items(cls, v):
+        """Valida che ci sia almeno un item nell'ordine."""
+        if not v or len(v) == 0:
+            raise ValueError("L'ordine deve contenere almeno un prodotto")
+        return v
+
+
+class OrderUpdate(BaseSchema):
+    """Schema per l'aggiornamento di un ordine."""
+    status: Optional[OrderStatus] = None
+    shipping_address: Optional[str] = Field(None, min_length=5, max_length=255)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class OrderInDB(OrderBase, TimeStampMixin):
+    """Schema per un ordine nel database."""
+    id: int
+    total_amount: Decimal
+    
+    class Config:
+        """Configurazione per lo schema ordine nel DB."""
+        orm_mode = True
+
+
+class Order(OrderInDB):
+    """Schema per la risposta API dell'ordine."""
+    items: List[OrderItem]
+    user: Optional[User] = None
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/secure-jwt.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# app/core/auth.py
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Union
+
+import jwt
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from passlib.context import CryptContext
+from pydantic import ValidationError
+
+from app.core.config import settings
+from app.models.user import User
+from app.schemas.token import TokenPayload
+from app.services.user_service import get_user_by_id
+
+# OAuth2 scheme per l'autenticazione con bearer token
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False
+)
+
+# Context per l'hashing e la verifica delle password
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Verifica della password
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+# Hashing della password
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+# Creazione dei token JWT
+def create_token(subject: Union[str, int], expires_delta: Optional[timedelta] = None) -> str:
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
+    to_encode = {
+        "exp": expire, 
+        "sub": str(subject),
+        "iat": datetime.utcnow(),
+        "nbf": datetime.utcnow(),
+        "jti": str(uuid.uuid4())  # JWT ID per identificare univocamente il token
+    }
+    
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        settings.SECRET_KEY, 
+        algorithm=settings.JWT_ALGORITHM
+    )
+    
+    return encoded_jwt
+
+# Validazione del token JWT
+def decode_token(token: str) -> Dict[str, Any]:
+    try:
+        payload = jwt.decode(
+            token, 
+            settings.SECRET_KEY, 
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_signature": True, "verify_exp": True}
+        )
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token expired",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except (jwt.InvalidTokenError, jwt.PyJWTError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+# Dependency per ottenere l'utente corrente
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    try:
+        payload = decode_token(token)
+        token_data = TokenPayload(**payload)
+        
+        # Verifica che il token non sia scaduto
+        if datetime.fromtimestamp(token_data.exp) < datetime.utcnow():
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+    except (jwt.PyJWTError, ValidationError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    user = await get_user_by_id(token_data.sub)
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+    
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+        
+    return user
+
+# Dependency per verificare che l'utente sia un admin
+async def get_current_admin(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions",
+        )
+    return current_user
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/secure-main-py.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.staticfiles import StaticFiles
+import logging
+import time
+from typing import List, Optional, Union, Dict, Any
+
+from app.api.v1.router import api_router
+from app.core.config import settings
+from app.core.errors import APIException, ErrorCode
+from app.core.logging import setup_logging
+
+# Configurazione dei logger
+logger = setup_logging()
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    description=settings.PROJECT_DESCRIPTION,
+    version=settings.VERSION,
+    docs_url=None,  # Disabilita /docs di default
+    redoc_url=None,  # Disabilita /redoc di default
+    openapi_url=f"{settings.API_V1_STR}/openapi.json" if not settings.PRODUCTION else None,
+)
+
+# Middleware per la gestione del CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Middleware per il logging delle richieste
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    request_id = request.headers.get("X-Request-Id", "")
+    logger.info(
+        f"Request {request_id} started: {request.method} {request.url.path}",
+        extra={"request_id": request_id, "client_ip": request.client.host}
+    )
+    
+    start_time = time.time()
+    
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        logger.info(
+            f"Request {request_id} completed: {response.status_code} in {process_time:.3f}s",
+            extra={"request_id": request_id, "status_code": response.status_code}
+        )
+        response.headers["X-Process-Time"] = str(process_time)
+        return response
+    except Exception as e:
+        process_time = time.time() - start_time
+        logger.exception(
+            f"Request {request_id} failed after {process_time:.3f}s: {str(e)}",
+            extra={"request_id": request_id}
+        )
+        raise
+
+# Handler globale per le eccezioni
+@app.exception_handler(APIException)
+async def api_exception_handler(request: Request, exc: APIException):
+    logger.error(
+        f"API Exception: {exc.detail}",
+        extra={
+            "status_code": exc.status_code,
+            "error_code": exc.error_code,
+            "path": request.url.path,
+        },
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": exc.error_code,
+                "message": exc.detail,
+                "details": exc.details
+            }
+        },
+    )
+
+# Handler per le eccezioni HTTP standard
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.error(
+        f"HTTP Exception: {exc.detail}",
+        extra={
+            "status_code": exc.status_code,
+            "path": request.url.path,
+        },
+    )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": {
+                "code": f"HTTP_{exc.status_code}",
+                "message": exc.detail,
+            }
+        },
+    )
+
+# Documentazione API protetta
+@app.get("/docs", include_in_schema=False)
+async def get_docs(request: Request):
+    if settings.PRODUCTION:
+        raise HTTPException(status_code=404, detail="Not found")
+    return get_swagger_ui_html(
+        openapi_url=f"{settings.API_V1_STR}/openapi.json",
+        title=f"{settings.PROJECT_NAME} - API Documentation",
+    )
+
+# Healthcheck endpoint
+@app.get("/health", tags=["health"])
+async def health_check():
+    return {"status": "ok", "version": settings.VERSION}
+
+# Inclusione dei router delle API
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Servizio di file statici se non in produzione
+if not settings.PRODUCTION:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Entry point per l'esecuzione diretta
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=not settings.PRODUCTION,
+        log_level="info",
+    )
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+
+================================================================================
+FILE: /Users/macbook/Desktop/dropevolution_repo/reviews-claude/security-hardening.py
+================================================================================
+Analizza il seguente file Python come parte di un progetto SaaS di automazione dropshipping. Per ciascun file, fornisci: errori, bug logici, suggerimenti di refactoring, ottimizzazione performance, controlli di sicurezza e test consigliati. Verifica se occorre migliorare JWT security (revoca token, claims), gestione segreti, completare endpoint, logging avanzato e test. Suggerisci se introdurre pattern architetturali, Prometheus/Grafana, caching Redis e strategie di resilienza.
+Codice sorgente:
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
+# app/core/config.py
+import os
+import secrets
+from typing import List, Union, Optional, Dict, Any
+from pydantic import BaseSettings, validator, PostgresDsn, AnyHttpUrl
+
+
+class Settings(BaseSettings):
+    """Configurazioni dell'applicazione."""
+    # Informazioni di base
+    PROJECT_NAME: str = "Drop Evolution"
+    PROJECT_DESCRIPTION: str = "E-commerce API"
+    VERSION: str = "1.0.0"
+    API_V1_STR: str = "/api/v1"
+    PRODUCTION: bool = os.getenv("ENVIRONMENT", "development").lower() == "production"
+    
+    # JWT
+    SECRET_KEY: str = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minuti
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7     # 7 giorni
+    
+    # CORS
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:8000",
+    ]
+    
+    # Configurazione database
+    DATABASE_URI: Optional[PostgresDsn] = None
+    
+    @validator("DATABASE_URI", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+        if isinstance(v, str):
+            return v
+        
+        # Costruisce l'URI di connessione al database
+        return PostgresDsn.build(
+            scheme="postgresql",
+            user=os.getenv("POSTGRES_USER", "postgres"),
+            password=os.getenv("POSTGRES_PASSWORD", "postgres"),
+            host=os.getenv("POSTGRES_HOST", "localhost"),
+            port=os.getenv("POSTGRES_PORT", "5432"),
+            path=f"/{os.getenv('POSTGRES_DB', 'dropevolution')}",
+        )
+    
+    # Sicurezza e Rate Limiting
+    RATE_LIMIT_ENABLED: bool = True
+    RATE_LIMIT_DEFAULT: int = 60  # richieste per minuto
+    RATE_LIMIT_LOGIN: int = 5     # tentativi di login per minuto
+    
+    # Security Headers
+    SECURITY_HEADERS: Dict[str, str] = {
+        "X-Frame-Options": "DENY",
+        "X-Content-Type-Options": "nosniff",
+        "X-XSS-Protection": "1; mode=block",
+        "Content-Security-Policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';",
+        "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+    }
+    
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        case_sensitive = True
+
+
+# Singleton delle impostazioni
+settings = Settings()
+
+
+
+# app/core/security.py
+import secrets
+import string
+from datetime import datetime, timedelta
+from typing import Any, Dict, Optional, Union
+
+import jwt
+from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+
+from app.core.config import settings
+from app.core.errors import TokenExpiredError, InvalidCredentialsError
+
+# Context per l'hashing delle password
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# OAuth2 scheme per l'autenticazione
+oauth2_scheme = OAuth2PasswordBearer(
+    tokenUrl=f"{settings.API_V1_STR}/auth/login",
+    auto_error=False
+)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica una password in chiaro con quella salvata."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """Genera l'hash sicuro di una password."""
+    return pwd_context.hash(password)
+
+def generate_random_password(length: int = 12) -> str:
+    """
+    Genera una password casuale sicura.
+    
+    Args:
+        length: Lunghezza della password (default: 12)
+        
+    Returns:
+        Una password casuale che soddisfa i requisiti di sicurezza
+    """
+    alphabet = string.ascii_letters + string.digits + "!@#$%^&*()_-+=<>?"
+    
+    # Assicura che la password contenga almeno una lettera maiuscola, una minuscola, un numero e un carattere speciale
+    while True:
+        password = ''.join(secrets.choice(alphabet) for _ in range(length))
+        
+        if (any(c.islower() for c in password) and
+            any(c.isupper() for c in password) and
+            any(c.isdigit() for c in password) and
+            any(c in "!@#$%^&*()_-+=<>?" for c in password)):
+            return password
+
+
+
+# app/middleware/security.py
+from fastapi import FastAPI
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+from app.core.config import settings
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware per aggiungere header di sicurezza a tutte le risposte.
+    """
+    
+    async def dispatch(self, request: Request, call_next):
+        """
+        Aggiunge gli header di sicurezza alle risposte.
+        
+        Args:
+            request: La richiesta HTTP
+            call_next: Il prossimo handler nella catena
+            
+        Returns:
+            La risposta con gli header di sicurezza applicati
+        """
+        response = await call_next(request)
+        
+        # Applica tutti gli header di sicurezza configurati
+        for key, value in settings.SECURITY_HEADERS.items():
+            response.headers[key] = value
+            
+        return response
+
+
+def add_security_middlewares(app: FastAPI) -> None:
+    """
+    Aggiunge tutti i middleware di sicurezza all'applicazione.
+    
+    Args:
+        app: L'istanza FastAPI
+    """
+    app.add_middleware(SecurityHeadersMiddleware)
+
+
+
+# app/middleware/rate_limit.py
+import time
+from typing import Dict, Tuple
+from fastapi import FastAPI, Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.status import HTTP_429_TOO_MANY_REQUESTS
+
+from app.core.config import settings
+from app.core.errors import APIException, ErrorCode
+
+class RateLimiter:
+    """
+    Implementazione semplice di rate limiting basata su sliding window.
+    """
+    def __init__(self, window_size: int = 60, max_requests: int = 60):
+        """
+        Inizializza il rate limiter.
+        
+        Args:
+            window_size: Dimensione della finestra in secondi (default: 60s)
+            max_requests: Numero massimo di richieste nella finestra (default: 60)
+        """
+        self.window_size = window_size
+        self.max_requests = max_requests
+        self.requests: Dict[str, list] = {}  # client_id -> [timestamps]
+    
+    def is_allowed(self, client_id: str) -> Tuple[bool, int, int]:
+        """
+        Controlla se il client può effettuare una richiesta.
+        
+        Args:
+            client_id: Identificatore del client (es. IP o user_id)
+            
+        Returns:
+            Tupla (allowed, remaining, reset_in_seconds)
+        """
+        now = time.time()
+        
+        # Inizializza la lista dei timestamp se non esiste
+        if client_id not in self.requests:
+            self.requests[client_id] = []
+        
+        # Rimuove i timestamp più vecchi della finestra
+        self.requests[client_id] = [ts for ts in self.requests[client_id] if now - ts < self.window_size]
+        
+        # Calcola richieste rimanenti
+        remaining = self.max_requests - len(self.requests[client_id])
+        
+        # Calcola secondi fino al reset
+        reset_in = self.window_size if not self.requests[client_id] else int(self.window_size - (now - min(self.requests[client_id])))
+        
+        # Verifica se il client ha superato il limite
+        if len(self.requests[client_id]) >= self.max_requests:
+            return False, 0, reset_in
+        
+        # Aggiunge il timestamp corrente
+        self.requests[client_id].append(now)
+        
+        return True, remaining - 1, reset_in
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware per il rate limiting delle richieste API.
+    """
+    
+    def __init__(self, app: FastAPI, **options):
+        """
+        Inizializza il middleware.
+        
+        Args:
+            app: L'istanza FastAPI
+            options: Opzioni aggiuntive
+        """
+        super().__init__(app)
+        
+        # Crea rate limiter con configurazioni diverse per endpoint specifici
+        self.default_limiter = RateLimiter(
+            max_requests=settings.RATE_LIMIT_DEFAULT
+        )
+        
+        self.login_limiter = RateLimiter(
+            max_requests=settings.RATE_LIMIT_LOGIN
+        )
+    
+    async def dispatch(self, request: Request, call_next):
+        """
+        Gestisce il rate limiting delle richieste.
+        
+        Args:
+            request: La richiesta HTTP
+            call_next: Il prossimo handler nella catena
+        """
+        # Skip rate limiting if disabled
+        if not settings.RATE_LIMIT_ENABLED:
+            return await call_next(request)
+        
+        # Determina l'identificatore del client
+        # Preferibilmente usa l'ID dell'utente autenticato, altrimenti l'IP
+        client_id = request.client.host
+        
+        # JWT token
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            try:
+                from app.core.auth import decode_token
+                token = auth_header.replace("Bearer ", "")
+                payload = decode_token(token)
+                if "sub" in payload:
+                    client_id = f"user:{payload['sub']}"
+            except Exception:
+                # Fallback su IP in caso di token non valido
+                pass
+        
+        # Seleziona il rate limiter in base al percorso
+        if request.url.path.endswith("/auth/login"):
+            limiter = self.login_limiter
+        else:
+            limiter = self.default_limiter
+        
+        # Verifica il rate limit
+        allowed, remaining, reset_in = limiter.is_allowed(client_id)
+        
+        if not allowed:
+            # Restituisce una risposta 429 Too Many Requests
+            error = APIException(
+                status_code=HTTP_429_TOO_MANY_REQUESTS,
+                error_code=ErrorCode.RATE_LIMIT_EXCEEDED,
+                detail="Troppe richieste. Riprova più tardi.",
+                details={"reset_in": reset_in}
+            )
+            
+            response = Response(
+                content=error.detail,
+                status_code=error.status_code,
+                headers={
+                    "Retry-After": str(reset_in),
+                    "X-RateLimit-Limit": str(limiter.max_requests),
+                    "X-RateLimit-Remaining": "0",
+                    "X-RateLimit-Reset": str(int(time.time() + reset_in))
+                }
+            )
+            return response
+        
+        # Procede con la richiesta
+        response = await call_next(request)
+        
+        # Aggiunge gli header di rate limiting
+        response.headers["X-RateLimit-Limit"] = str(limiter.max_requests)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        response.headers["X-RateLimit-Reset"] = str(int(time.time() + reset_in))
+        
+        return response
+
+
+def add_rate_limit_middleware(app: FastAPI) -> None:
+    """
+    Aggiunge il middleware di rate limiting all'applicazione.
+    
+    Args:
+        app: L'istanza FastAPI
+    """
+    app.add_middleware(RateLimitMiddleware)
+
+
+Risultato dell'analisi: (scrivi qui sotto)
+

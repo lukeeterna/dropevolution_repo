@@ -1,3 +1,10 @@
+# 🛠 Copilot: per favore analizza il seguente codice.
+# ✅ Controlla eventuali bug logici, problemi di sicurezza e vulnerabilità.
+# ✅ Suggerisci ottimizzazioni per performance e leggibilità.
+# ✅ Verifica che il codice sia conforme alle best practice Python 3.
+# ✅ Se opportuno, proponi funzioni più pulite, nomi di variabili migliori e gestione degli errori.
+# ✅ Evidenzia parti del codice che potrebbero creare conflitti o essere migliorate.
+
 # app/core/errors.py
 from enum import Enum
 from typing import Any, Dict, List, Optional, Union
