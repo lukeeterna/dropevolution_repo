@@ -11,7 +11,9 @@ from fastapi import Request, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
-SECRET_KEY = "supersegreto"  # Cambialo e gestiscilo tramite variabile d'ambiente in produzione
+import os
+SECRET_KEY = os.getenv("SECRET_KEY", "VQV8519S8srKFF6iOBAqgJgxUAbbqWUfd0psC19nSi_K-0uAl3_Do-195v4_iKeQs9Q8GXXrDMrr8cacMIqUsw")
+
 
 class JWTMiddleware(HTTPBearer):
     async def __call__(self, request: Request):
