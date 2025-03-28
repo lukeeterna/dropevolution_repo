@@ -1,30 +1,24 @@
-from fastapi import FastAPI
+ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from backend.routes import products, auth, orders, user
-from backend.jwt_middleware import JWTMiddleware
-import os
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY non trovata nell'ambiente. Configura la variabile d'ambiente.")
+from api_routes.backup_endpoint import backup_bp
 
 app = FastAPI()
-app.add_middleware(JWTMiddleware)
 
+# Middleware CORS (se necessario)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Puoi restringerlo in produzione
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-app.include_router(products.router, prefix="/products")
-app.include_router(auth.router, prefix="/auth")
-app.include_router(orders.router, prefix="/orders")
-app.include_router(user.router, prefix="/user")
+# Includi solo il router di backup per il test
+app.include_router(backup_bp)
 
-@app.get("/")
-def read_root():
-    return {"message": "DropEvolution API is running."}
+# Temporaneamente disattivati gli import delle route principali
+# from backend.routes import products, auth, orders, user
+# app.include_router(products.router)
+# app.include_router(auth.router)
+# app.include_router(orders.router)
+# app.include_router(user.router)
