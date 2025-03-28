@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api_routes.backup_endpoint import backup_bp
+from api_routes.backup_endpoint import backup_bp  # Assicurati che questa importazione sia presente
 
 app = FastAPI()
 
@@ -13,5 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registra il router per /backup
-app.include_router(backup_bp)
+# Includi solo il router di backup per il test
+app.include_router(backup_bp)  # Questa è la linea critica per rendere funzionante il backup
+
+# Altri import/commenti non necessari per questo test
